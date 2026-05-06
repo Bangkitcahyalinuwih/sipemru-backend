@@ -22,7 +22,7 @@ class BookingService
         $dayName = strtolower(Carbon::parse($date)->format('l'));
 
         // --- CEK 1: Bentrok dengan jadwal kuliah tetap ---
-        $scheduleConflict = Schedule::query()
+        $scheduleConflict = Schedule::query()   
             ->where('room_id', $roomId)
             ->where('day_of_week', $dayName)
             ->where('is_active', true)
