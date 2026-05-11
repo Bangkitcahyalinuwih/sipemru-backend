@@ -15,13 +15,13 @@ Route::get('/qr/verify/{token}', [BookingController::class, 'verifyQr']);
 Route::get('/buildings',         [BuildingController::class, 'index']);
 Route::get('/buildings/{id}',    [BuildingController::class, 'show']);
 
+Route::get('/rooms/{id}', [RoomController::class, 'show']);
 // AUTHENTICATED
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
 
     Route::get('/rooms',      [RoomController::class, 'index']);
-    Route::get('/rooms/{id}', [RoomController::class, 'show']);
 
     Route::get('/schedules',                   [ScheduleController::class, 'index']);
     Route::get('/schedules/{id}',              [ScheduleController::class, 'show']);
@@ -53,3 +53,4 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy']);
     });
 });
+//FINAL ROUTE
