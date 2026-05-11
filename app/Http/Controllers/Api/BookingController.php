@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -56,8 +57,10 @@ class BookingController extends Controller
 
         // Cek ketersediaan waktu
         $check = $this->bookingService->isAvailable(
-            $data['room_id'], $data['booking_date'],
-            $data['start_time'], $data['end_time']
+            $data['room_id'],
+            $data['booking_date'],
+            $data['start_time'],
+            $data['end_time']
         );
 
         if (!$check['available']) {
@@ -161,28 +164,82 @@ class BookingController extends Controller
     // Helper: generate QR ticket + kirim email
     public function generateQrAndNotify(Booking $booking): void
     {
-        $token     = Str::uuid()->toString();
-        $expiresAt = Carbon::parse($booking->booking_date . ' ' . $booking->end_time);
-        $qrPath    = 'qr/' . $token . '.svg';
-
-        Storage::disk('public')->put(
-            $qrPath,
-            QrCode::format('svg')->size(300)->errorCorrection('H')
-                  ->generate(config('app.url') . '/api/qr/verify/' . $token)
-        );
-
-        QrTicket::create([
-            'booking_id'    => $booking->id,
-            'token'         => $token,
-            'qr_image_path' => $qrPath,
-            'expires_at'    => $expiresAt,
-        ]);
-
         try {
-            $fresh = $booking->fresh(['user', 'room.building', 'qrTicket']);
-            Mail::to($fresh->user->email)->send(new BookingApproved($fresh));
+
+            // Generate token unik
+            $token = Str::uuid()->toString();
+
+            /**
+             * booking_date sudah di-cast menjadi Carbon object
+             * end_time biasanya format TIME dari DB
+             */
+            $expiresAt = Carbon::parse(
+                $booking->booking_date->format('Y-m-d') . ' ' . substr($booking->end_time, 0, 5)
+            );
+
+            // Path penyimpanan QR
+            $qrPath = 'qr/' . $token . '.svg';
+
+            // Generate QR SVG
+            $qrSvg = QrCode::format('svg')
+                ->size(300)
+                ->errorCorrection('H')
+                ->generate(
+                    config('app.url') . '/api/qr/verify/' . $token
+                );
+
+            // Simpan file QR ke storage
+            Storage::disk('public')->put($qrPath, $qrSvg);
+
+            // Simpan tiket QR ke database
+            QrTicket::create([
+                'booking_id'    => $booking->id,
+                'token'         => $token,
+                'qr_image_path' => $qrPath,
+                'expires_at'    => $expiresAt,
+            ]);
+
+            // Refresh relasi terbaru
+            $fresh = $booking->fresh([
+                'user',
+                'room.building',
+                'qrTicket'
+            ]);
+
+            /**
+             * Kirim email
+             * Jika email gagal:
+             * - booking tetap valid
+             * - qr tetap ada
+             * - hanya log warning
+             */
+            try {
+
+                if ($fresh->user && $fresh->user->email) {
+
+                    Mail::to($fresh->user->email)
+                        ->send(new BookingApproved($fresh));
+                }
+            } catch (\Exception $e) {
+
+                Log::warning('Gagal kirim email approved', [
+                    'booking_id' => $booking->id,
+                    'message'    => $e->getMessage(),
+                    'line'       => $e->getLine(),
+                    'file'       => $e->getFile(),
+                ]);
+            }
         } catch (\Exception $e) {
-            Log::warning('Gagal kirim email approved: ' . $e->getMessage());
+
+            Log::error('Generate QR gagal', [
+                'booking_id' => $booking->id,
+                'message'    => $e->getMessage(),
+                'line'       => $e->getLine(),
+                'file'       => $e->getFile(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
+
+            throw $e;
         }
     }
 }
