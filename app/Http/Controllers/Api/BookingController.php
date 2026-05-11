@@ -166,7 +166,7 @@ class BookingController extends Controller
     {
         try {
 
-            // Generate token unik
+            // Fungsi generate token unik
             $token = Str::uuid()->toString();
 
             /**
