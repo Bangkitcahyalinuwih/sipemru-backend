@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -9,9 +10,11 @@ use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Traits\BroadcastsRoomStatus;
 
 class AdminController extends Controller
 {
+    use BroadcastsRoomStatus;
     public function __construct(private BookingController $bookingController) {}
 
     // GET /api/admin/stats
@@ -25,12 +28,16 @@ class AdminController extends Controller
 
         $occupiedNow = Room::active()
             ->where(function ($q) use ($date, $now, $day) {
-                $q->whereHas('schedules', fn($s) =>
+                $q->whereHas(
+                    'schedules',
+                    fn($s) =>
                     $s->where('day_of_week', $day)->where('is_active', true)
-                      ->where('start_time', '<=', $now)->where('end_time', '>', $now)
-                )->orWhereHas('bookings', fn($b) =>
+                        ->where('start_time', '<=', $now)->where('end_time', '>', $now)
+                )->orWhereHas(
+                    'bookings',
+                    fn($b) =>
                     $b->where('booking_date', $date)->where('status', 'approved')
-                      ->where('start_time', '<=', $now)->where('end_time', '>', $now)
+                        ->where('start_time', '<=', $now)->where('end_time', '>', $now)
                 );
             })->count();
 
@@ -56,9 +63,11 @@ class AdminController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('purpose', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('user', fn($u) =>
-                      $u->where('name', 'like', '%' . $request->search . '%')
-                  );
+                    ->orWhereHas(
+                        'user',
+                        fn($u) =>
+                        $u->where('name', 'like', '%' . $request->search . '%')
+                    );
             });
         }
 
@@ -83,6 +92,8 @@ class AdminController extends Controller
         ]);
 
         $this->bookingController->generateQrAndNotify($booking->fresh());
+
+        $this->broadcastRoomStatus($booking->room_id);
 
         return response()->json(['message' => 'Peminjaman disetujui. QR tiket dikirim ke peminjam.']);
     }
@@ -111,6 +122,8 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             Log::warning('Gagal kirim email rejected: ' . $e->getMessage());
         }
+
+        $this->broadcastRoomStatus($booking->room_id);
 
         return response()->json(['message' => 'Peminjaman ditolak. Notifikasi dikirim.']);
     }

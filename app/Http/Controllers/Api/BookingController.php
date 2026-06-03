@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\BookingApproved;
-use App\Mail\BookingRejected;
+use App\Traits\BroadcastsRoomStatus;
 use App\Models\Booking;
 use App\Models\QrTicket;
 use App\Models\Room;
@@ -19,6 +19,8 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BookingController extends Controller
 {
+    use BroadcastsRoomStatus;
+
     public function __construct(private BookingService $bookingService) {}
 
     // GET /api/bookings/my
@@ -84,6 +86,8 @@ class BookingController extends Controller
             $this->generateQrAndNotify($booking);
         }
 
+        $this->broadcastRoomStatus($booking->room_id);
+
         return response()->json([
             'message' => $status === 'approved'
                 ? 'Peminjaman disetujui otomatis. QR tiket dikirim ke email.'
@@ -127,6 +131,8 @@ class BookingController extends Controller
         }
 
         $booking->update(['status' => 'cancelled']);
+
+        $this->broadcastRoomStatus($booking->room_id);
         return response()->json(['message' => 'Peminjaman dibatalkan.']);
     }
 
