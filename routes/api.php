@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings',                    [BookingController::class, 'store']);
     Route::delete('/bookings/{id}/cancel',      [BookingController::class, 'cancel']);
     Route::post('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
+    Route::get('/bookings/calendar', [BookingController::class, 'calendar']);
 
     // ADMIN ONLY
     Route::middleware('role:admin')->prefix('admin')->group(function () {
