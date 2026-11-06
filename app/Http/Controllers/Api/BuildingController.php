@@ -13,7 +13,7 @@ class BuildingController extends Controller
      */
     public function index()
     {
-        
+
         $buildings = Building::query()
             ->where('is_active', true)
             ->withCount('activeRooms')
@@ -85,7 +85,7 @@ class BuildingController extends Controller
     {
         $building = Building::findOrFail($id);
 
-        if ($building->activeRoom()->exists()){
+        if ($building->activeRooms()->exists()) {
             return response()->json([
                 'message' => 'Gedung tidak dapat dihapus karena masih memiliki ruangan aktif.'
             ], 400);

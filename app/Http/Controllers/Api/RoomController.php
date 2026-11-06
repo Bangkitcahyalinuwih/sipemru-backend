@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -26,7 +27,9 @@ class RoomController extends Controller
         }
 
         if ($request->filled('campus')) {
-            $query->whereHas('building', fn($q) =>
+            $query->whereHas(
+                'building',
+                fn($q) =>
                 $q->where('campus', $request->campus)
             );
         }
@@ -78,8 +81,8 @@ class RoomController extends Controller
         $room = Room::with([
             'building',
             'schedules' => fn($q) => $q->where('is_active', true)
-                                        ->orderBy('day_of_week')
-                                        ->orderBy('start_time'),
+                ->orderBy('day_of_week')
+                ->orderBy('start_time'),
         ])->findOrFail($id);
 
         $date    = $request->input('date', today()->toDateString());
@@ -115,6 +118,12 @@ class RoomController extends Controller
     // POST /api/admin/rooms
     public function store(Request $request)
     {
+        if (is_string($request->facilities)) {
+            $request->merge([
+                'facilities' => json_decode($request->facilities, true)
+            ]);
+        }
+
         $data = $request->validate([
             'building_id'   => 'required|exists:buildings,id',
             'code'          => 'required|string|max:20|unique:rooms,code',
@@ -129,7 +138,7 @@ class RoomController extends Controller
             'is_active'     => 'sometimes|boolean',
             'photo'          => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
-        
+
         if ($request->hasFile('photo')) {
             $data['foto'] = $request->file('photo')->store('rooms_photos', 'public');
         }
@@ -150,6 +159,13 @@ class RoomController extends Controller
     {
         $room = Room::findOrFail($id);
 
+        // if (is_string($request->facilities)) {
+        //     $request->merge([
+        //         'facilities' => json_decode($request->facilities, true)
+        //     ]);
+        // }
+
+
         $data = $request->validate([
             'building_id'   => 'sometimes|exists:buildings,id',
             'code'          => 'sometimes|string|max:20|unique:rooms,code,' . $id,
@@ -164,8 +180,8 @@ class RoomController extends Controller
             'photo'          => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        if($request->hasFile('photo')) {
-            if($room->foto) {
+        if ($request->hasFile('photo')) {
+            if ($room->foto) {
                 Storage::disk('public')->delete($room->foto);
             }
             $data['foto'] = $request->file('photo')->store('rooms_photos', 'public');
@@ -197,7 +213,6 @@ class RoomController extends Controller
         return response()->json([
             'message' => 'Foto berhasil dihapus.',
         ]);
-        
     }
 
     // DELETE /api/admin/rooms/{id}

@@ -69,7 +69,7 @@ class BookingService
                 ),
             ];
         }
-
+    
         return [
             'available' => true,
             'message'   => 'Ruangan tersedia di waktu tersebut.',

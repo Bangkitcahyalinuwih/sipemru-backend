@@ -119,6 +119,32 @@ class BookingController extends Controller
         ]);
     }
 
+    public function calendar(Request $request)
+    {
+        $query = Booking::with('room:id,name')
+            ->whereIn('status', ['pending', 'approved']); // SESUAIKAN nilai status
+
+        if ($request->filled('room_id')) {
+            $query->where('room_id', $request->room_id);
+        }
+        if ($request->filled('from') && $request->filled('to')) {
+            $query->whereBetween('booking_date', [$request->from, $request->to]);
+        }
+
+        return response()->json([
+            'data' => $query->get()->map(fn($b) => [
+                'id'           => $b->id,
+                'room_id'      => $b->room_id,
+                'room_name'    => $b->room?->name,
+                'organization' => $b->organization,
+                'booking_date' => $b->booking_date,
+                'start_time'   => $b->start_time,
+                'end_time'     => $b->end_time,
+                'status'       => $b->status,
+            ]),
+        ]);
+    }
+
     // DELETE /api/bookings/{id}/cancel
     public function cancel(Request $request, int $id)
     {

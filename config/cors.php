@@ -31,11 +31,12 @@ return [
 
     // 'supports_credentials' => false,
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', '*'], // Ditambah '*' jika ada rute di luar prefix api/
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:5173')],
+    // UBAH BARIS INI JADI BINTANG AGAR NGROK & LOCALHOST BISA MASUK SEMUA
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
@@ -44,7 +45,7 @@ return [
     'exposed_headers' => [],
 
     'max_age' => 0,
-    
-    'supports_credentials' => true,
+
+    'supports_credentials' => false, // Set ke false jika allowed_origins menggunakan '*' agar tidak bentrok dengan aturan browser
 
 ];
